@@ -59,6 +59,12 @@ DEF_GRAPHITE_TEST_FOR_ALL_CONTEXTS(InnerFillTest, reporter, context,
                         "Expected (%d) vs Actual (%d)", expectedRenderSteps, actualRenderSteps);
     };
 
+    const bool srcWithCoverageIsHW =
+            CanUseHardwareBlending(context->priv().caps(),
+                                   TextureInfoPriv::ViewFormat(device->target().proxy()->textureInfo()),
+                                   SkBlendMode::kSrc,
+                                   Coverage::kSingleChannel);
+
     // ** Test cases that should not produce an inner fill:
     // 1. A transparent paint, so the draw is not eligible for an inner fill
     {
@@ -79,24 +85,22 @@ DEF_GRAPHITE_TEST_FOR_ALL_CONTEXTS(InnerFillTest, reporter, context,
         opaqueBlendedPaint.setBlendMode(SkBlendMode::kSrcIn);
         testRRect(opaqueBlendedPaint, /*innerFillExpected=*/false);
     }
-
-    // ** Test cases that shouldn't produce an inner fill due to analytic clipping
-    device->pushClipStack();
-    device->clipShader(SkShaders::Color({0.1f, 0.2f, 0.3f, 0.5f}, nullptr),
-                        SkClipOp::kIntersect);
     // 4. An opaque paint but with an analytic clip
     {
-        skiatest::ReporterContext label{reporter, "opaque src-over analytic clip"};
+        skiatest::ReporterContext label{reporter, "analytic clip"};
+        device->pushClipStack();
+        device->clipShader(SkShaders::Color({0.1f, 0.2f, 0.3f, 0.5f}, nullptr),
+                           SkClipOp::kIntersect);
         testRRect(SkPaint(), /*innerFillExpected=*/false);
+        device->popClipStack();
     }
-    // 5. A kSrc paint but there is analytic clip
-    {
-        skiatest::ReporterContext label{reporter, "src w/ analytic clip"};
+    // 5. A kSrc paint but the device requires shader blending since there's coverage
+    if (!srcWithCoverageIsHW) {
+        skiatest::ReporterContext label{reporter, "src w/o dual-src blending"};
         SkPaint srcPaint;
         srcPaint.setBlendMode(SkBlendMode::kSrc);
         testRRect(srcPaint, /*innerFillExpected=*/false);
     }
-    device->popClipStack();
 
     // ** Test cases that should produce an inner fill:
     // 1. A kSrcOver paint with opaque color (or shader)
@@ -105,8 +109,8 @@ DEF_GRAPHITE_TEST_FOR_ALL_CONTEXTS(InnerFillTest, reporter, context,
         testRRect(SkPaint(), /*innerFillExpected=*/true);
     }
     // 2. A kSrc paint when the device supports HW blending regardless of coverage
-    {
-        skiatest::ReporterContext label{reporter, "src"};
+    if (srcWithCoverageIsHW) {
+        skiatest::ReporterContext label{reporter, "src w/ dual-src blending"};
         SkPaint srcPaint;
         srcPaint.setBlendMode(SkBlendMode::kSrc);
         srcPaint.setAlphaf(0.5f); // emphasize it's src color is not opaque
