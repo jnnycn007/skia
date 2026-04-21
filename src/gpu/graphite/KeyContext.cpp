@@ -52,7 +52,7 @@ KeyContext::KeyContext(skgpu::graphite::Recorder* recorder,
         , fLocal2Dev(local2Dev)
         , fLocalMatrix(nullptr)
         , fDstColorInfo(dstColorInfo)
-        , fKeyGenFlags(initialFlags) {\
+        , fKeyGenFlags(initialFlags) {
     fPaintColor = PaintParams::Color4fPrepForDst(paintColor, fDstColorInfo).makeOpaque().premul();
     fPaintColor.fA = paintColor.fA;
 }
@@ -74,6 +74,8 @@ KeyContext::KeyContext(const KeyContext& other,
         , fKeyGenFlags(other.fKeyGenFlags | xtraFlags) {}
 
 KeyContext::~KeyContext() {}
+
+KeyContext& KeyContext::operator=(const KeyContext&) = default;
 
 sk_sp<RuntimeEffectDictionary> KeyContext::rtEffectDict() const { return fRTEffectDict; }
 
