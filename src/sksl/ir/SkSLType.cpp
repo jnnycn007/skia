@@ -859,6 +859,15 @@ std::unique_ptr<Type> Type::MakeStructType(const Context& context,
         context.fErrors->error(pos, std::string(structOrIB) + " '" + std::string(name) +
                                     "' must contain at least one field");
     }
+    // Always limit each struct's field count as accessing fields in SPIR-V need to be able to fit
+    // within 16-bits. This is a separate constraint from the slot count limit that also includes
+    // the size of the subtypes.
+    if (fields.size() > 1024) {
+        // 1024 is an arbitrary limit, but no reasonable type on the GPU should be this big.
+        // It can be increased up to 65k if needed.
+        context.fErrors->error(pos, std::string(structOrIB) + " '" + std::string(name) +
+                                    "' cannot have more than 1024 fields");
+    }
     size_t slots = 0;
 
     THashSet<std::string_view> fieldNames;

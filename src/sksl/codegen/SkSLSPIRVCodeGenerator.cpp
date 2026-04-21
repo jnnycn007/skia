@@ -30,6 +30,7 @@
 #include "src/sksl/SkSLPool.h"
 #include "src/sksl/SkSLPosition.h"
 #include "src/sksl/SkSLProgramSettings.h"
+#include "src/sksl/SkSLString.h"
 #include "src/sksl/SkSLUtil.h"
 #include "src/sksl/analysis/SkSLSpecialization.h"
 #include "src/sksl/codegen/SkSLCodeGenTypes.h"
@@ -1104,6 +1105,15 @@ static bool is_globally_reachable_op(SpvOp_ op) {
 void SPIRVCodeGenerator::writeOpCode(SpvOp_ opCode, int length, SPIRVBlob& out) {
     SkASSERT(opCode != SpvOpLoad || &out != &fConstantBuffer);
     SkASSERT(opCode != SpvOpUndef);
+    // Length must fit into 16 bits since it is packed into the top of the word.
+    if (length > std::numeric_limits<uint16_t>::max()) {
+        // We don't have position information here to help with the error reporting.
+        fContext.fErrors->error(
+                Position(),
+                SkSL::String::printf("Op code %d exceeds 16 bits: %d", (int) opCode, length));
+        return;
+    }
+
     bool foundDeadCode = false;
     if (is_control_flow_op(opCode)) {
         // This instruction causes us to leave the current block.
