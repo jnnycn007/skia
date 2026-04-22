@@ -45,8 +45,6 @@ protected:
     SkImageInfo imageInfo() const override {
         return SkImageInfo::MakeUnknown(this->width(), this->height());
     }
-
-    uint32_t getPixelStorageID() const override { return 0; }
 };
 
 namespace SkSurfaces {

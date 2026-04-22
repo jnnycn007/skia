@@ -10,7 +10,6 @@
 
 #include <cstddef>
 #include "include/core/SkPictureRecorder.h"
-#include "include/core/SkSurface.h"
 #include "include/utils/SkNWayCanvas.h"
 
 class SkCaptureManager;
