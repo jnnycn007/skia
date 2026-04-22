@@ -135,6 +135,8 @@ bench_sources = [
   "$_bench/TableBench.cpp",
   "$_bench/TessellateBench.cpp",
   "$_bench/TextBlobBench.cpp",
+  "$_bench/Tiger.cpp",
+  "$_bench/Tiger.h",
   "$_bench/TileBench.cpp",
   "$_bench/TileImageFilterBench.cpp",
   "$_bench/TopoSortBench.cpp",
