@@ -535,6 +535,18 @@ fn convert_to_a2b(
 
     match lut {
         LutWarehouse::Multidimensional(mdt) => {
+            // ICC.1:2022 §7.2.6 defines colour spaces up to 15 channels
+            // (nCLR), but skcms_A2B/B2A structs use fixed-size arrays of
+            // 4 elements for input_curves[] and grid_points[], so we can
+            // only represent device spaces with 1-4 channels (up to CMYK).
+            // Reject anything outside that range (crbug.com/504160794).
+            if mdt.num_input_channels > 4
+                || mdt.num_output_channels == 0
+                || mdt.num_output_channels > 4
+            {
+                return None;
+            }
+
             let input_curves: Vec<ffi::Curve> =
                 mdt.a_curves.iter().filter_map(convert_to_curve).collect();
 
@@ -564,6 +576,17 @@ fn convert_to_a2b(
 
             if output_curves.is_empty() {
                 return None;
+            }
+
+            // ICC.1:2022 §10.14/§10.15: each active CLUT dimension must
+            // have at least 2 grid points.  A zero would cause skcms clut()
+            // to underflow when computing grid_points[i] - 1 (crbug.com/504103236).
+            if !grid_data.is_empty() {
+                for i in 0..mdt.num_input_channels.min(4) as usize {
+                    if grid_points[i] < 2 {
+                        return None;
+                    }
+                }
             }
 
             // If there is no CLUT, input and output channels must match
@@ -598,6 +621,14 @@ fn convert_to_a2b(
             // Legacy Lut8Type/Lut16Type (mft1/mft2 tags)
             // Similar structure to Multidimensional, but uses uniform grid size
 
+            // Same channel-count constraint as Multidimensional above.
+            if ldt.num_input_channels > 4
+                || ldt.num_output_channels == 0
+                || ldt.num_output_channels > 4
+            {
+                return None;
+            }
+
             let input_curves: Vec<ffi::Curve> = {
                 let curve_data = lut_store_to_u16(&ldt.input_table);
                 split_table_to_curves(
@@ -610,11 +641,16 @@ fn convert_to_a2b(
             let (grid_data, is_16bit_grid) = convert_grid_data(&ldt.clut_table);
 
             let grid_size = ldt.num_clut_grid_points;
-            let grid_points: [u8; 4] = match ldt.num_input_channels {
-                3 => [grid_size, grid_size, grid_size, 0],
-                4 => [grid_size, grid_size, grid_size, grid_size],
-                _ => [grid_size, 0, 0, 0], // 1D or 2D case
-            };
+            let mut grid_points = [0u8; 4];
+            for i in 0..ldt.num_input_channels.min(4) as usize {
+                grid_points[i] = grid_size;
+            }
+
+            // Legacy lut8/lut16 types always have a CLUT.  Each active
+            // dimension must have >= 2 grid points (crbug.com/504103236).
+            if grid_size < 2 {
+                return None;
+            }
 
             let mut matrix = matrix3d_to_ffi(&ldt.matrix);
             // Legacy LUT matrix is typically applied post-CLUT, so bias is zero

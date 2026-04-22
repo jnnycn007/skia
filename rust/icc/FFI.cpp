@@ -65,11 +65,11 @@ static bool ToSkcmsA2B(const rust_icc::A2B& rust_a2b, skcms_A2B* out_skcms) {
     memset(out_skcms, 0, sizeof(skcms_A2B));
 
     // Input curves: If input_channels is non-zero, ensure we have enough curves
+    if (rust_a2b.input_channels > 4) {
+        return false;
+    }
     out_skcms->input_channels = rust_a2b.input_channels;
     if (rust_a2b.input_channels > 0) {
-        if (rust_a2b.input_channels < 1 || rust_a2b.input_channels > 4) {
-            return false;
-        }
         // Only validate curve count if input_channels is specified
         if (!rust_a2b.input_curves.empty() && rust_a2b.input_channels > rust_a2b.input_curves.size()) {
             return false;
@@ -89,6 +89,13 @@ static bool ToSkcmsA2B(const rust_icc::A2B& rust_a2b, skcms_A2B* out_skcms) {
     }
     memcpy(out_skcms->grid_points, rust_a2b.grid_points.data(), 4);
     if (!rust_a2b.grid_data.empty()) {
+        // Each active CLUT dimension must have >= 2 grid points, matching the
+        // constraint enforced by skcms_Parse (crbug.com/504103236).
+        for (uint32_t i = 0; i < out_skcms->input_channels; i++) {
+            if (out_skcms->grid_points[i] < 2) {
+                return false;
+            }
+        }
         if (rust_a2b.is_16bit_grid) {
             out_skcms->grid_16 = rust_a2b.grid_data.data();
         } else {
@@ -129,11 +136,11 @@ static bool ToSkcmsA2B(const rust_icc::A2B& rust_a2b, skcms_A2B* out_skcms) {
     }
 
     // Output curves: If output_channels is non-zero, ensure we have enough curves
+    if (rust_a2b.output_channels > 4) {
+        return false;
+    }
     out_skcms->output_channels = rust_a2b.output_channels;
     if (rust_a2b.output_channels > 0) {
-        if (rust_a2b.output_channels > 4) {
-            return false;
-        }
         // Only validate curve count if output_channels is specified
         if (!rust_a2b.output_curves.empty() && rust_a2b.output_channels > rust_a2b.output_curves.size()) {
             return false;
@@ -203,6 +210,12 @@ static bool ToSkcmsB2A(const rust_icc::B2A& rust_b2a, skcms_B2A* out_skcms) {
     }
     memcpy(out_skcms->grid_points, rust_b2a.grid_points.data(), 4);
     if (!rust_b2a.grid_data.empty()) {
+        // Each active CLUT dimension must have >= 2 grid points (crbug.com/504103236).
+        for (uint32_t i = 0; i < rust_b2a.output_channels; i++) {
+            if (out_skcms->grid_points[i] < 2) {
+                return false;
+            }
+        }
         if (rust_b2a.is_16bit_grid) {
             out_skcms->grid_16 = rust_b2a.grid_data.data();
         } else {

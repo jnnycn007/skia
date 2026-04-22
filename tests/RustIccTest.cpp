@@ -13,6 +13,7 @@
 #include "tests/Test.h"
 #include "tools/Resources.h"
 
+#include <array>
 #include <cmath>
 #include <cstring>
 
@@ -440,13 +441,15 @@ DEF_TEST(RustIcc_profile_with_a2b_matrix, r) {
     rust_profile.a2b.matrix.vals[2][1] = 0.1192f;
     rust_profile.a2b.matrix.vals[2][2] = 0.9505f;
 
-    // Set up minimal grid
+    // Set up minimal grid (2x2x2 = 8 points, 1 byte per output = 8 bytes)
     rust::Vec<uint8_t> grid_data;
-    grid_data.push_back(0x80);
+    for (int i = 0; i < 8; i++) {
+        grid_data.push_back(0x80);
+    }
     rust_profile.a2b.grid_data = std::move(grid_data);
-    rust_profile.a2b.grid_points[0] = 1;
-    rust_profile.a2b.grid_points[1] = 1;
-    rust_profile.a2b.grid_points[2] = 1;
+    rust_profile.a2b.grid_points[0] = 2;
+    rust_profile.a2b.grid_points[1] = 2;
+    rust_profile.a2b.grid_points[2] = 2;
 
     // Convert to skcms
     skcms_ICCProfile skcms_profile;
@@ -532,15 +535,15 @@ DEF_TEST(RustIcc_profile_with_table_curves, r) {
     }
     rust_profile.a2b.input_curves = std::move(input_curves);
 
-    // Minimal grid (1x1x1 = 1 point, 3 output channels = 3 bytes)
+    // Minimal grid (2x2x2 = 8 points, 3 output channels = 24 bytes)
     rust::Vec<uint8_t> grid_data;
-    grid_data.push_back(0x80);
-    grid_data.push_back(0x80);
-    grid_data.push_back(0x80);
+    for (int i = 0; i < 24; i++) {
+        grid_data.push_back(0x80);
+    }
     rust_profile.a2b.grid_data = std::move(grid_data);
-    rust_profile.a2b.grid_points[0] = 1;
-    rust_profile.a2b.grid_points[1] = 1;
-    rust_profile.a2b.grid_points[2] = 1;
+    rust_profile.a2b.grid_points[0] = 2;
+    rust_profile.a2b.grid_points[1] = 2;
+    rust_profile.a2b.grid_points[2] = 2;
     rust_profile.a2b.is_16bit_grid = false;
 
     // Convert to skcms (rust_profile must remain alive after this!)
@@ -570,6 +573,66 @@ DEF_TEST(RustIcc_profile_with_table_curves, r) {
     }
 
     // rust_profile goes out of scope here, invalidating pointers in skcms_profile
+}
+
+// Regression tests for crbug.com/504160794 and crbug.com/504103236:
+// ToSkcmsIccProfile must reject A2B structs with out-of-range channel counts
+// or zero in an active grid_points dimension (which would cause skcms to
+// read out of bounds).
+DEF_TEST(RustIcc_reject_malformed_a2b, r) {
+    // Identity output curve reused by every case.
+    rust_icc::Curve id_curve;
+    id_curve.table_entries = 0;
+    id_curve.parametric = {1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+
+    struct Case {
+        const char* label;
+        uint32_t    input_channels;
+        uint32_t    output_channels;
+        std::array<uint8_t, 4> grid_points;
+        bool        has_grid;     // whether to attach CLUT data
+    };
+
+    const Case cases[] = {
+        // b/504160794 – channel count > 4
+        {"input_channels=64", 64, 3, {0,0,0,0}, false},
+        {"input_channels=5",   5, 3, {0,0,0,0}, false},
+        {"output_channels=5",  3, 5, {0,0,0,0}, false},
+        // b/504103236 – zero in active grid dimension
+        {"grid_points[1]=0",   2, 3, {2,0,0,0}, true},
+    };
+
+    for (const auto& tc : cases) {
+        rust_icc::IccProfile prof;
+        prof.data_color_space = skcms_Signature_RGB;
+        prof.connection_space  = skcms_Signature_XYZ;
+        prof.has_a2b = true;
+        prof.a2b.input_channels  = tc.input_channels;
+        prof.a2b.output_channels = tc.output_channels;
+        prof.a2b.grid_points = tc.grid_points;
+
+        // Output curves (always 3 for PCS)
+        rust::Vec<rust_icc::Curve> out;
+        for (int i = 0; i < 3; i++) out.push_back(id_curve);
+        prof.a2b.output_curves = std::move(out);
+
+        if (tc.has_grid) {
+            rust::Vec<uint8_t> grid;
+            for (int i = 0; i < 3; i++) grid.push_back(0x80);
+            prof.a2b.grid_data = std::move(grid);
+            prof.a2b.is_16bit_grid = false;
+
+            rust::Vec<rust_icc::Curve> in_c;
+            for (uint32_t i = 0; i < tc.input_channels && i < 4; i++) {
+                in_c.push_back(id_curve);
+            }
+            prof.a2b.input_curves = std::move(in_c);
+        }
+
+        skcms_ICCProfile skcms_profile;
+        bool ok = rust_icc::ToSkcmsIccProfile(prof, &skcms_profile);
+        REPORTER_ASSERT(r, !ok, "Expected rejection for: %s", tc.label);
+    }
 }
 
 DEF_TEST(RustIcc_profile_with_b2a, r) {
