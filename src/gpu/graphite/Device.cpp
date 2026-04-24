@@ -1645,6 +1645,7 @@ void Device::drawGeometry(const Transform& localToDevice,
                           scopedDrawBuilder.builder(),
                           scopedDrawBuilder.gatherer(),
                           localToDevice.matrix(),
+                          clip.drawBounds().asSkRect(),
                           fDC->colorInfo(),
                           keyGenFlags,
                           paint.color()};

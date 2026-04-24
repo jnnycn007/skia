@@ -11,6 +11,7 @@
 #include "include/core/SkImageInfo.h"
 #include "include/core/SkM44.h"
 #include "include/core/SkMatrix.h"
+#include "include/core/SkRect.h"
 #include "src/base/SkEnumBitMask.h"
 #include "src/core/SkColorData.h"
 #include "src/core/SkColorSpaceXformSteps.h"
@@ -72,6 +73,7 @@ public:
                PaintParamsKeyBuilder*,
                PipelineDataGatherer*,
                const SkM44& local2Dev,
+               const SkRect& clipDrawBounds,
                const SkColorInfo& dstColorInfo,
                SkEnumBitMask<KeyGenFlags> initialFlags,
                const SkColor4f& paintColor);
@@ -125,6 +127,8 @@ public:
 
     SkEnumBitMask<KeyGenFlags> flags() const { return fKeyGenFlags; }
 
+    const SkRect& clipDrawBounds() const { return fClipDrawBounds; }
+
 private:
     // Fields which will not change over the course of building a paint key
     const Caps* fCaps;
@@ -136,6 +140,7 @@ private:
     ShaderCodeDictionary* fDictionary;
     sk_sp<RuntimeEffectDictionary> fRTEffectDict;
     SkM44 fLocal2Dev;
+    SkRect fClipDrawBounds;
 
 protected:
     // Fields that can be modified while walking a paint's effects for a key
