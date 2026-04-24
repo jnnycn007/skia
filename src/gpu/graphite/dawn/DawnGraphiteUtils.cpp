@@ -87,6 +87,12 @@ SkTextureCompressionType DawnFormatToCompressionType(wgpu::TextureFormat format)
         /*TextureFormat::kYUV8_P2_420     Native-only */                                    \
         /*TextureFormat::kYUV8_P3_420     unsupported */                                    \
         /*TextureFormat::kYUV10x6_P2_420  Native-only */                                    \
+        /*TextureFormat::kYUV8_P2_422     Native-only */                                    \
+        /*TextureFormat::kYUV8_P3_422     unsupported */                                    \
+        /*TextureFormat::kYUV10x6_P2_422  Native-only */                                    \
+        /*TextureFormat::kYUV8_P2_444     Native-only */                                    \
+        /*TextureFormat::kYUV8_P3_444     unsupported */                                    \
+        /*TextureFormat::kYUV10x6_P2_444  Native-only */                                    \
         /*TextureFormat::kExternal        Native-only */                                    \
         M(TextureFormat::kS8,             wgpu::TextureFormat::Stencil8)                    \
         M(TextureFormat::kD16,            wgpu::TextureFormat::Depth16Unorm)                \
@@ -101,6 +107,10 @@ SkTextureCompressionType DawnFormatToCompressionType(wgpu::TextureFormat format)
         M(TextureFormat::kRGBA16,         wgpu::TextureFormat::RGBA16Unorm)                 \
         M(TextureFormat::kYUV8_P2_420,    wgpu::TextureFormat::R8BG8Biplanar420Unorm)       \
         M(TextureFormat::kYUV10x6_P2_420, wgpu::TextureFormat::R10X6BG10X6Biplanar420Unorm) \
+        M(TextureFormat::kYUV8_P2_422,    wgpu::TextureFormat::R8BG8Biplanar422Unorm)       \
+        M(TextureFormat::kYUV10x6_P2_422, wgpu::TextureFormat::R10X6BG10X6Biplanar422Unorm) \
+        M(TextureFormat::kYUV8_P2_444,    wgpu::TextureFormat::R8BG8Biplanar444Unorm)       \
+        M(TextureFormat::kYUV10x6_P2_444, wgpu::TextureFormat::R10X6BG10X6Biplanar444Unorm) \
         M(TextureFormat::kExternal,       wgpu::TextureFormat::OpaqueYCbCrAndroid)
 #else
 #define DAWN_FORMAT_MAPPING_NATIVE_ONLY(M)
