@@ -282,6 +282,15 @@ DEF_TEST(RustIcc_a2b_b2a_flags, r) {
     rust_profile.has_a2b = true;
     rust_profile.has_b2a = false;
 
+    // A2B requires exactly 3 output channels with matching curves.
+    rust_profile.a2b.output_channels = 3;
+    rust_icc::Curve id_curve;
+    id_curve.table_entries = 0;
+    id_curve.parametric = {1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    for (int i = 0; i < 3; i++) {
+        rust_profile.a2b.output_curves.push_back(id_curve);
+    }
+
     // Convert to skcms
     skcms_ICCProfile skcms_profile;
     bool success = rust_icc::ToSkcmsIccProfile(rust_profile, &skcms_profile);
@@ -600,6 +609,10 @@ DEF_TEST(RustIcc_reject_malformed_a2b, r) {
         {"output_channels=5",  3, 5, {0,0,0,0}, false},
         // b/504103236 – zero in active grid dimension
         {"grid_points[1]=0",   2, 3, {2,0,0,0}, true},
+        // b/506010945 – output_channels != 3 causes OOB in clut()
+        {"output_channels=1",  1, 1, {2,0,0,0}, true},
+        {"output_channels=2",  3, 2, {0,0,0,0}, false},
+        {"output_channels=4",  3, 4, {0,0,0,0}, false},
     };
 
     for (const auto& tc : cases) {

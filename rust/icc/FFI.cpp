@@ -135,8 +135,8 @@ static bool ToSkcmsA2B(const rust_icc::A2B& rust_a2b, skcms_A2B* out_skcms) {
         }
     }
 
-    // Output curves: If output_channels is non-zero, ensure we have enough curves
-    if (rust_a2b.output_channels > 4) {
+    // A2B output is always PCS (XYZ/Lab), which is 3-dimensional (crbug.com/506010945).
+    if (rust_a2b.output_channels != 3) {
         return false;
     }
     out_skcms->output_channels = rust_a2b.output_channels;
@@ -223,8 +223,8 @@ static bool ToSkcmsB2A(const rust_icc::B2A& rust_b2a, skcms_B2A* out_skcms) {
         }
     }
 
-    // Output curves
-    if (rust_b2a.output_channels < 1 || rust_b2a.output_channels > 4) {
+    // skcms requires 3 (RGB) or 4 (CMYK) output channels for B2A.
+    if (rust_b2a.output_channels < 3 || rust_b2a.output_channels > 4) {
         return false;
     }
     if (rust_b2a.output_channels > rust_b2a.output_curves.size()) {
