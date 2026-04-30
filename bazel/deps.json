@@ -186,12 +186,12 @@
       "remote": "https://chromium.googlesource.com/external/github.com/KhronosGroup/SPIRV-Cross"
     },
     {
-      "commit": "948a3b0997e2dffea5484b3df7bd5590c5b844cc",
+      "commit": "53b334f4a5f18fb1f2d367baeba8b43e2eb0b62b",
       "name": "spirv_headers",
       "remote": "https://skia.googlesource.com/external/github.com/KhronosGroup/SPIRV-Headers.git"
     },
     {
-      "commit": "3605cce5b11f6a085107fd400f1721cd2a59c49e",
+      "commit": "2ec8457ab33d539b6f1fecc998360c0b8b05ed4f",
       "name": "spirv_tools",
       "remote": "https://skia.googlesource.com/external/github.com/KhronosGroup/SPIRV-Tools.git"
     },
