@@ -89,11 +89,7 @@ public:
 private:
     GlobalResourceStats(Protected isProtected) : fProtected(isProtected) {}
 
-    static GlobalResourceStats& Singleton(Protected isProtected) {
-        static GlobalResourceStats kUnprotected{Protected::kNo};
-        static GlobalResourceStats kProtected{Protected::kYes};
-        return isProtected == Protected::kYes ? kProtected : kUnprotected;
-    }
+    static GlobalResourceStats& Singleton(Protected isProtected);
 
     void recordNewResource(size_t size, Budgeted);
     void recordPurgeResource(size_t size);

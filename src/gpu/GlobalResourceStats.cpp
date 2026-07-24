@@ -12,6 +12,12 @@
 
 namespace skgpu {
 
+GlobalResourceStats& GlobalResourceStats::Singleton(Protected isProtected) {
+    static GlobalResourceStats kUnprotected{Protected::kNo};
+    static GlobalResourceStats kProtected{Protected::kYes};
+    return isProtected == Protected::kYes ? kProtected : kUnprotected;
+}
+
 void GlobalResourceStats::recordNewResource(size_t size, Budgeted budgeted) {
     if (budgeted == Budgeted::kYes) {
         fBudgetedBytes += size;
